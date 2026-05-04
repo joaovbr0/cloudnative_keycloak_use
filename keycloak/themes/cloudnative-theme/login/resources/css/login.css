@@ -1,0 +1,344 @@
+/* ===================================================
+   Tema Cloud Native — Design System CNCF (cncf.io)
+   Font: Clarity City → Plus Jakarta Sans (Google Fonts)
+   Palette: #D62293 pink · #B1FBDE mint · #BFF3FF cyan
+   =================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* ---------- Tokens — espelho fiel do cncf.io ---------- */
+:root {
+  /* superfícies */
+  --bg-page:       #FDFDFD;
+  --bg-card:       #FFFFFF;
+  --bg-section:    #F1F1F1;
+
+  /* bordas */
+  --border:        #E6E6E6;
+  --border-strong: #C4C4C4;
+
+  /* tipografia */
+  --text-primary:  #000000;
+  --text-muted:    #747474;
+  --text-on-dark:  #FFFFFF;
+
+  /* acentos CNCF (extraídos diretamente do site) */
+  --pink:          #D62293;   /* CTA principal — "Join" button */
+  --pink-light:    #FDDAF0;   /* tint suave */
+  --mint:          #B1FBDE;   /* blocos destaque verde */
+  --cyan:          #BFF3FF;   /* blocos destaque azul */
+  --blue-logo:     #0086FF;   /* cor do logo SVG */
+  --purple:        #7A3FF1;   /* botão secundário */
+
+  /* radii — CNCF usa valores pequenos e precisos */
+  --radius-btn:    4px;
+  --radius-card:   9px;
+  /* --radius-input:  5pxsuu; */
+
+  /* sombras */
+  --shadow-card:   0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08);
+  --shadow-focus:  0 0 0 3px rgba(214, 34, 147, 0.22);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ---------- Página ---------- */
+body,
+.login-pf body {
+  background: var(--bg-page) !important;
+  /* Mint + Cyan — mesmos tons de bloco do cncf.io */
+  background-image:
+    radial-gradient(ellipse at 8% 15%,  rgba(177, 251, 222, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 85%, rgba(191, 243, 255, 0.30) 0%, transparent 50%) !important;
+  background-attachment: fixed !important;
+  font-family: 'Plus Jakarta Sans', 'Clarity City', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  min-height: 100vh;
+  color: var(--text-primary) !important;
+}
+
+/* ---------- Container ---------- */
+#kc-container-wrapper,
+.login-pf .container-fluid {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Header / Logo ---------- */
+#kc-header,
+#kc-header-wrapper {
+  background: transparent !important;
+  text-align: center;
+  padding: 52px 0 28px !important;
+  border-bottom: none !important;
+}
+
+/* Suprime o texto do realm renderizado por <span class="kc-logo-text"> */
+.kc-logo-text,
+#kc-header-wrapper .kc-logo-text,
+#kc-header-wrapper > span,
+#kc-header .kc-logo-text {
+  display: none !important;
+}
+
+/* Logo via pseudo-elemento — SVG oficial CNCF (viewBox ~288×55, ratio 5.2:1) */
+#kc-header-wrapper::after {
+  content: '';
+  display: block;
+  width: 340px;
+  height: 66px;
+  margin: 0 auto;
+  background: url('../img/logo.svg') no-repeat center center;
+  background-size: contain;
+}
+
+/* ---------- Card ---------- */
+.cncf-login-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 40px !important;
+  max-width: 432px;
+  margin: 0 auto;
+}
+
+/* FIX: remove card-dentro-do-card dos wrappers internos do Keycloak/PatternFly */
+.pf-v5-c-login__main,
+.pf-v5-c-login__main-body,
+.pf-v5-c-login__main-header,
+.pf-v5-c-login__main-footer,
+.card-pf-body,
+.login-pf-body,
+#kc-content-wrapper,
+#kc-form,
+#kc-form-wrapper,
+.login-pf-page-header.card-pf-header {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.pf-v5-c-login__main {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.pf-v5-c-login__main .card-pf,
+.card-pf .card-pf,
+#kc-content .card-pf {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+/* ---------- Título do formulário ---------- */
+#kc-page-title,
+h1#kc-page-title,
+.login-pf-page-header h1 {
+  color: var(--text-primary) !important;
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;        /* CNCF usa 800 em headings */
+  letter-spacing: -0.02em !important;
+  margin-bottom: 28px !important;
+  text-align: center;
+}
+
+/* ---------- Grupos de campo ---------- */
+.form-group,
+.pf-v5-c-form__group {
+  margin-bottom: 20px !important;
+}
+
+/* ---------- Labels ---------- */
+label,
+.pf-v5-c-form__label-text,
+.control-label {
+  color: var(--text-muted) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 7px !important;
+  display: block;
+}
+
+/* ---------- Inputs ---------- */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+.form-control,
+.pf-v5-c-form-control {
+  background: var(--bg-page) !important;
+  border: 1.5px solid var(--border-strong) !important;
+  border-radius: var(--radius-input) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Plus Jakarta Sans', 'Clarity City', -apple-system, sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  padding: 12px 14px !important;
+  width: 100% !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+  outline: none !important;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+.form-control:focus {
+  border-color: var(--pink) !important;
+  box-shadow: var(--shadow-focus) !important;
+  background: #FFFFFF !important;
+}
+
+input::placeholder { color: var(--text-muted) !important; opacity: 1 !important; }
+
+/* ---------- Botão principal — CNCF "Join" style ---------- */
+#kc-login,
+.btn-primary,
+button[type="submit"],
+.pf-v5-c-button.pf-m-primary {
+  background: var(--pink) !important;
+  border: none !important;
+  border-radius: var(--radius-btn) !important;
+  color: #FFFFFF !important;
+  cursor: pointer !important;
+  font-family: 'Plus Jakarta Sans', 'Clarity City', -apple-system, sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  padding: 12px 48px !important;     /* mesmo padding do "Join" do cncf.io: 7px 48px */
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s !important;
+  width: 100% !important;
+  margin-top: 8px !important;
+  box-shadow: 0 2px 8px rgba(214, 34, 147, 0.25) !important;
+}
+
+#kc-login:hover,
+.btn-primary:hover,
+button[type="submit"]:hover {
+  background: #B81E7F !important;    /* darken 15% do pink */
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 16px rgba(214, 34, 147, 0.35) !important;
+}
+
+#kc-login:active,
+.btn-primary:active,
+button[type="submit"]:active {
+  transform: translateY(0) !important;
+}
+
+/* ---------- Links ---------- */
+a,
+.login-pf-page a {
+  color: var(--pink) !important;     /* links = pink no cncf.io */
+  text-decoration: none !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+a:hover { text-decoration: underline !important; }
+
+/* ---------- Linha remember me / forgot password ---------- */
+#kc-form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+/* ---------- Checkbox ---------- */
+#rememberMe + label,
+.checkbox label {
+  color: var(--text-muted) !important;
+  font-size: 0.875rem !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-weight: 400 !important;
+}
+
+input[type="checkbox"] { accent-color: var(--pink); }
+
+/* ---------- Alertas ---------- */
+.alert-error,
+.pf-v5-c-alert.pf-m-danger {
+  background: #FFF0F5 !important;
+  border: 1px solid rgba(214, 34, 147, 0.25) !important;
+  border-left: 3px solid var(--pink) !important;
+  border-radius: var(--radius-input) !important;
+  color: #8B0040 !important;
+  padding: 12px 16px !important;
+  margin-bottom: 20px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+
+.alert-success,
+.pf-v5-c-alert.pf-m-success {
+  background: #F0FFF8 !important;
+  border: 1px solid rgba(177, 251, 222, 0.8) !important;
+  border-left: 3px solid #00A86B !important;
+  border-radius: var(--radius-input) !important;
+  color: #00633E !important;
+  padding: 12px 16px !important;
+  margin-bottom: 20px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Social providers ---------- */
+#kc-social-providers {
+  border-top: 1px solid var(--border) !important;
+  margin-top: 24px;
+  padding-top: 24px;
+}
+
+/* ---------- Faixa mint no topo do card (estilo blocos CNCF) ---------- */
+.cncf-login-card::before {
+  content: '';
+  display: block;
+  height: 4px;
+  background: linear-gradient(90deg, var(--mint) 0%, var(--cyan) 50%, var(--pink) 100%);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  margin: -40px -40px 32px -40px;
+}
+
+.pf-v5-c-login__main::before,
+.pf-v5-c-login__main .card-pf::before,
+.login-pf-page .card-pf::before,
+.card-pf .card-pf::before,
+#kc-content .card-pf::before,
+#kc-form::before,
+#kc-form-wrapper::before {
+  content: none !important;
+}
+
+/* ---------- Rodapé ---------- */
+#kc-info,
+.login-pf-page-footer {
+  text-align: center;
+  color: var(--text-muted) !important;
+  font-size: 0.75rem !important;
+  margin-top: 24px;
+  padding-bottom: 36px;
+}
+
+#kc-info::after {
+  content: 'Cloud Native Demo · Aula Keycloak · CNCF';
+  display: block;
+  margin-top: 4px;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--pink); }

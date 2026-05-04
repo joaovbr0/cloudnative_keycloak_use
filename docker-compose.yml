@@ -1,0 +1,98 @@
+# =============================================================
+# AULA 1 — Como usar o Keycloak com o sistema
+# Stack completa: Keycloak + Backend + Frontend + Grafana
+#
+# Subir:  docker compose up -d
+# Parar:  docker compose down
+# Logs:   docker compose logs -f
+#
+# URLs:
+#   Frontend  → http://localhost:5173
+#   Backend   → http://localhost:3001
+#   Keycloak  → http://localhost:8080  (admin / admin123)
+#   Grafana   → http://localhost:3000  (login via Keycloak)
+# =============================================================
+
+version: "3.8"
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KC_HOSTNAME: "http://localhost:8080"
+      KC_HOSTNAME_STRICT: "false"
+      # KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./keycloak/themes/cloudnative-theme:/opt/keycloak/themes/cloudnative-theme
+    networks:
+      - cloudnative-demo
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      SESSION_SECRET: ${SESSION_SECRET:-5hEzwnOpzZOe8qJdX4Qay1HRySApvZmNlQuwEQ9VqfQ=}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: cloudnative
+      KEYCLOAK_CLIENT_ID: demo-app
+      KEYCLOAK_CLIENT_SECRET: demo-secret-123
+      REDIRECT_URI: http://localhost:3001/auth/callback
+      FRONTEND_URL: http://localhost:5173
+    networks:
+      - cloudnative-demo
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - cloudnative-demo
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - keycloak
+    environment:
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      # OIDC via Keycloak
+      GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+      GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: grafana-secret-123
+      GF_AUTH_GENERIC_OAUTH_SCOPES: openid email profile roles
+      # AUTH_URL: acessada pelo browser → usa localhost
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: http://localhost:8080/realms/cloudnative/protocol/openid-connect/auth
+      # TOKEN_URL e API_URL: chamadas internas container → usa nome do serviço
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: http://keycloak:8080/realms/cloudnative/protocol/openid-connect/token
+      GF_AUTH_GENERIC_OAUTH_API_URL: http://keycloak:8080/realms/cloudnative/protocol/openid-connect/userinfo
+      GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
+      GF_AUTH_GENERIC_OAUTH_USE_PKCE: "true"
+      # Mapeia role 'instrutor' → Admin Grafana, demais → Viewer
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(realm_access.roles[*], 'instrutor') && 'Admin' || 'Viewer'"
+      GF_USERS_AUTO_ASSIGN_ORG: "true"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Viewer
+      # Logout SSO: redireciona para end_session do Keycloak ao sair do Grafana
+      GF_AUTH_SIGNOUT_REDIRECT_URL: "http://localhost:8080/realms/cloudnative/protocol/openid-connect/logout?post_logout_redirect_uri=http://localhost:3000/login&client_id=grafana"
+    networks:
+      - cloudnative-demo
+
+networks:
+  cloudnative-demo:
+    driver: bridge

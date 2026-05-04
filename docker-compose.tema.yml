@@ -1,0 +1,61 @@
+# =============================================================
+# AULA 2 — Configurar o visual do Keycloak (hot-reload)
+# Somente Keycloak com cache de tema DESATIVADO.
+# Edite os arquivos em keycloak/themes/ e recarregue o browser.
+#
+# Subir:  docker compose -f docker-compose.tema.yml up -d
+# Parar:  docker compose -f docker-compose.tema.yml down
+# Logs:   docker compose -f docker-compose.tema.yml logs -f keycloak
+#
+# URLs:
+#   Login page → http://localhost:8080/realms/cloudnative/protocol/openid-connect/auth
+#                ?client_id=demo-app&response_type=code&redirect_uri=http://localhost:3001
+#   Admin      → http://localhost:8080  (admin / admin123)
+#
+# Arquivos do tema:
+#   keycloak/themes/cloudnative-theme/login/resources/css/login.css
+#   keycloak/themes/cloudnative-theme/login/resources/img/logo.svg
+#   keycloak/themes/cloudnative-theme/login/theme.properties
+# =============================================================
+
+version: "3.8"
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KC_HOSTNAME: "http://localhost:8080"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+
+      # --- Hot-reload do tema (desativa cache) ---
+      KC_SPI_THEME_STATIC_MAX_AGE: "-1"
+      KC_SPI_THEME_CACHE_THEMES: "false"
+      KC_SPI_THEME_CACHE_TEMPLATES: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./keycloak/themes/cloudnative-theme:/opt/keycloak/themes/cloudnative-theme
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready
+            HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q
+            '200 OK'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - cloudnative-demo
+
+networks:
+  cloudnative-demo:
+    driver: bridge

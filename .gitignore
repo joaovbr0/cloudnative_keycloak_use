@@ -1,0 +1,29 @@
+# Dependencies
+backend/node_modules/
+frontend/node_modules/
+
+# Environment files
+backend/.env
+frontend/.env
+
+# Claude Code
+.claude/
+
+# Code review graph index
+.code-review-graph/
+
+# Playwright MCP logs
+.playwright-mcp/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log

@@ -1,0 +1,514 @@
+{
+  "info": {
+    "name": "Cloud Native — Keycloak Demo",
+    "description": "Testa endpoints do Keycloak diretamente via API (ROPC) e endpoints do backend.\n\n**Ordem recomendada:**\n1. Execute '01 — Obter Tokens (ROPC)' → access_token e refresh_token salvos automaticamente\n2. Execute os demais em qualquer ordem\n\n**Usuários:**\n- joao.banczek / joao123 (role: instrutor)\n- maria.aluna / maria123 (role: aluno)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Keycloak — API Direta",
+      "description": "Chamadas diretas aos endpoints do Keycloak, sem passar pelo backend da aplicação.",
+      "item": [
+        {
+          "name": "00 — OIDC Discovery",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{keycloak_url}}/realms/{{realm}}/.well-known/openid-configuration",
+            "description": "Documento de descoberta automática. Retorna todos os endpoints (token, userinfo, introspect, revoke, end_session, jwks) sem precisar configurar nada manualmente."
+          }
+        },
+        {
+          "name": "01 — Obter Tokens (ROPC — user + senha)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.environment.set('access_token', json.access_token);",
+                  "    pm.environment.set('refresh_token', json.refresh_token);",
+                  "    pm.environment.set('id_token', json.id_token || '');",
+                  "    pm.test('Tokens obtidos com sucesso', () => pm.response.to.have.status(200));",
+                  "    console.log('access_token salvo. Expira em ' + json.expires_in + 's');",
+                  "} else {",
+                  "    pm.test('ERRO ao obter tokens', () => { throw new Error(JSON.stringify(json)); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "password",           "description": "ROPC — Resource Owner Password Credentials" },
+                { "key": "username",      "value": "{{username}}" },
+                { "key": "password",      "value": "{{password}}" },
+                { "key": "client_id",     "value": "{{client_id}}" },
+                { "key": "client_secret", "value": "{{client_secret}}" },
+                { "key": "scope",         "value": "openid profile email" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+            "description": "Obtém tokens passando usuário e senha diretamente.\n\nScript 'Tests' salva access_token e refresh_token nas variáveis de ambiente automaticamente.\n\n⚠️ ROPC é legado — use apenas para testes."
+          }
+        },
+        {
+          "name": "02 — Introspectar Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Token ativo: ' + json.active, () => pm.expect(json.active).to.be.true);",
+                  "console.log('sub:', json.sub, '| exp:', new Date(json.exp * 1000).toISOString());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",           "value": "{{access_token}}" },
+                { "key": "token_type_hint", "value": "access_token" },
+                { "key": "client_id",       "value": "{{client_id}}" },
+                { "key": "client_secret",   "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token/introspect",
+            "description": "Verifica se o access_token está ativo no servidor.\n\nRetorna `active: true/false` + claims completas. Diferente de validar localmente o JWT — aqui o Keycloak verifica se foi revogado."
+          }
+        },
+        {
+          "name": "03 — Introspectar Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",           "value": "{{refresh_token}}" },
+                { "key": "token_type_hint", "value": "refresh_token" },
+                { "key": "client_id",       "value": "{{client_id}}" },
+                { "key": "client_secret",   "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token/introspect",
+            "description": "Introspecta o refresh token. Refresh tokens são opacos (não-JWT) — única forma de verificar validade é via introspeção."
+          }
+        },
+        {
+          "name": "04 — Renovar Token (Refresh)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.environment.set('access_token', json.access_token);",
+                  "    pm.environment.set('refresh_token', json.refresh_token);",
+                  "    pm.test('Token renovado. Expira em ' + json.expires_in + 's', () => pm.response.to.have.status(200));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "refresh_token" },
+                { "key": "refresh_token", "value": "{{refresh_token}}" },
+                { "key": "client_id",     "value": "{{client_id}}" },
+                { "key": "client_secret", "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+            "description": "Obtém novo access_token usando o refresh_token — sem pedir senha.\n\nNovo token terá novo `iat` e novo `exp`. Script 'Tests' atualiza variáveis automaticamente."
+          }
+        },
+        {
+          "name": "05 — UserInfo (com Access Token)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/userinfo",
+            "description": "Busca dados atualizados do usuário. Diferente das claims do JWT: sempre retorna dados frescos do Keycloak."
+          }
+        },
+        {
+          "name": "06 — JWKS (Chaves Públicas)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/certs",
+            "description": "Chaves públicas do Keycloak em formato JWKS. Qualquer serviço usa estas chaves para validar JWTs localmente sem chamar o Keycloak."
+          }
+        },
+        {
+          "name": "07 — Revogar Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Token revogado', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));",
+                  "pm.environment.set('refresh_token', '');",
+                  "console.log('refresh_token revogado. Chame 03 para confirmar active: false');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",           "value": "{{refresh_token}}" },
+                { "key": "token_type_hint", "value": "refresh_token" },
+                { "key": "client_id",       "value": "{{client_id}}" },
+                { "key": "client_secret",   "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/revoke",
+            "description": "Revoga o refresh_token permanentemente.\n\nApós revogar, execute '03 — Introspectar Refresh Token' para confirmar `active: false`."
+          }
+        },
+        {
+          "name": "08 — Revogar Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",           "value": "{{access_token}}" },
+                { "key": "token_type_hint", "value": "access_token" },
+                { "key": "client_id",       "value": "{{client_id}}" },
+                { "key": "client_secret",   "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/revoke",
+            "description": "Revoga o access_token. Após revogar, introspeção retorna `active: false`."
+          }
+        },
+        {
+          "name": "09 — Logout SSO (end_session)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/logout?id_token_hint={{id_token}}&post_logout_redirect_uri=http://localhost:5173",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "logout"],
+              "query": [
+                { "key": "id_token_hint",            "value": "{{id_token}}" },
+                { "key": "post_logout_redirect_uri",  "value": "http://localhost:5173" }
+              ]
+            },
+            "description": "Encerra sessão SSO globalmente. No browser redireciona — no Postman retorna 302."
+          }
+        },
+        {
+          "name": "10 — Token Exchange (client_credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.test('Client token obtido. Expira em ' + json.expires_in + 's', () => pm.response.to.have.status(200));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "client_credentials", "description": "Machine-to-machine — sem usuário" },
+                { "key": "client_id",     "value": "{{client_id}}" },
+                { "key": "client_secret", "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+            "description": "Autenticação machine-to-machine sem usuário.\n\n⚠️ Requer 'Service Accounts Enabled' no client demo-app → Keycloak Admin → Clients → demo-app → Settings."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Backend — API da Aplicação",
+      "description": "Endpoints do backend Node.js. /health, / e /tokens/endpoints não requerem autenticação. Os demais requerem cookie de sessão (faça login pelo browser primeiro).",
+      "item": [
+        {
+          "name": "Status da API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backend_url}}/",
+            "description": "Status da API e lista de endpoints disponíveis."
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backend_url}}/health",
+            "description": "Health check do backend. Retorna { status: 'ok' }."
+          }
+        },
+        {
+          "name": "Endpoints OIDC descobertos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backend_url}}/tokens/endpoints",
+            "description": "Endpoints Keycloak descobertos via OIDC Discovery, como vistos pelo backend."
+          }
+        },
+        {
+          "name": "Dados da Sessão — requer cookie",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backend_url}}/auth/me",
+            "description": "Sessão com tokens decodificados.\n\nRequer cookie connect.sid: faça login em http://localhost:5173, copie o cookie do DevTools e adicione aqui."
+          }
+        },
+        {
+          "name": "Renovar Token — requer cookie",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backend_url}}/tokens/refresh",
+            "description": "Renova access_token via backend. Requer cookie de sessão."
+          }
+        },
+        {
+          "name": "Introspectar Token — requer cookie",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoToken\": \"access_token\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backend_url}}/tokens/introspect",
+            "description": "tipoToken: 'access_token' ou 'refresh_token'. Requer cookie de sessão."
+          }
+        },
+        {
+          "name": "Revogar Token — requer cookie",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoToken\": \"refresh_token\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backend_url}}/tokens/revoke",
+            "description": "tipoToken: 'access_token' ou 'refresh_token'. Requer cookie de sessão."
+          }
+        },
+        {
+          "name": "UserInfo — requer cookie",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backend_url}}/tokens/userinfo",
+            "description": "Busca UserInfo via backend. Requer cookie de sessão."
+          }
+        },
+        {
+          "name": "Logout Local — requer cookie",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backend_url}}/auth/logout-local",
+            "description": "Destrói sessão local sem encerrar SSO no Keycloak."
+          }
+        },
+        {
+          "name": "Logout SSO — requer cookie",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backend_url}}/auth/logout",
+            "description": "Encerra sessão local + SSO global. Retorna { logoutUrl }."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fluxo Completo (Runner)",
+      "description": "Sequência para Collection Runner. Demonstra ciclo completo de vida do token.",
+      "item": [
+        {
+          "name": "Step 1 — Login (ROPC)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.environment.set('access_token', json.access_token);",
+                  "pm.environment.set('refresh_token', json.refresh_token);",
+                  "pm.environment.set('id_token', json.id_token || '');",
+                  "pm.test('Step 1 OK — tokens obtidos', () => pm.expect(json.access_token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "password" },
+                { "key": "username",      "value": "{{username}}" },
+                { "key": "password",      "value": "{{password}}" },
+                { "key": "client_id",     "value": "{{client_id}}" },
+                { "key": "client_secret", "value": "{{client_secret}}" },
+                { "key": "scope",         "value": "openid profile email" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token"
+          }
+        },
+        {
+          "name": "Step 2 — Introspectar (active: true)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Step 2 OK — active: true', () => pm.expect(json.active).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",           "value": "{{access_token}}" },
+                { "key": "token_type_hint", "value": "access_token" },
+                { "key": "client_id",       "value": "{{client_id}}" },
+                { "key": "client_secret",   "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token/introspect"
+          }
+        },
+        {
+          "name": "Step 3 — Revogar Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Step 3 OK — token revogado', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",           "value": "{{refresh_token}}" },
+                { "key": "token_type_hint", "value": "refresh_token" },
+                { "key": "client_id",       "value": "{{client_id}}" },
+                { "key": "client_secret",   "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/revoke"
+          }
+        },
+        {
+          "name": "Step 4 — Introspectar após revogar (active: false)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Step 4 OK — active: false (token inválido)', () => pm.expect(json.active).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",           "value": "{{refresh_token}}" },
+                { "key": "token_type_hint", "value": "refresh_token" },
+                { "key": "client_id",       "value": "{{client_id}}" },
+                { "key": "client_secret",   "value": "{{client_secret}}" }
+              ]
+            },
+            "url": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token/introspect"
+          }
+        }
+      ]
+    }
+  ]
+}

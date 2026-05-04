@@ -1,0 +1,147 @@
+{
+  "realm": "cloudnative",
+  "displayName": "Cloud Native Demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "loginTheme": "cloudnative-theme",
+  "accountTheme": "cloudnative-theme",
+  "accessTokenLifespan": 300,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionMaxLifespan": 5184000,
+  "roles": {
+    "realm": [
+      {
+        "name": "instrutor",
+        "description": "Instrutor da aula Cloud Native",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "aluno",
+        "description": "Aluno da aula Cloud Native",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "demo-app",
+      "name": "Aplicação Demo Cloud Native",
+      "description": "Cliente de demonstração para aula de Keycloak",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "demo-secret-123",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:3001/auth/callback",
+        "http://localhost:3001/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3001",
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173##http://localhost:3001"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "clientId": "grafana",
+      "name": "Grafana",
+      "description": "Grafana autenticado via Keycloak OIDC com PKCE",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "grafana-secret-123",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:3000/login/generic_oauth"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/login"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "joao.banczek",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "João",
+      "lastName": "Banczek",
+      "email": "joao.banczek@cloudnative.dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "joao123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["instrutor", "default-roles-cloudnative"]
+    },
+    {
+      "username": "maria.aluna",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Maria",
+      "lastName": "Aluna",
+      "email": "maria.aluna@cloudnative.dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "maria123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["aluno", "default-roles-cloudnative"]
+    }
+  ],
+  "defaultRoles": ["offline_access", "uma_authorization"],
+  "requiredCredentials": ["password"],
+  "scopeMappings": [],
+  "clientScopeMappings": {}
+}

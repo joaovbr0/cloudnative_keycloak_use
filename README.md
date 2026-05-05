@@ -56,10 +56,10 @@ sequenceDiagram
     U->>F: Clica "Entrar com Keycloak"
     F->>B: GET /auth/login
 
-    Note over B: Gera code_verifier (aleatório)\ncode_challenge = BASE64(SHA256(verifier))<br/>Salva verifier + state na sessão
+    Note over B: Gera code_verifier (aleatório)<br/>code_challenge = BASE64(SHA256(verifier))<br/>Salva verifier + state na sessão
 
     B-->>U: 302 Redirect para Keycloak /authorize
-    Note over U,B: response_type=code\ncode_challenge=[hash]<br/>state=[csrf_token]
+    Note over U,B: response_type=code<br/>code_challenge=[hash]<br/>state=[csrf_token]
 
     U->>K: GET /authorize
     K-->>U: Exibe tela de login (tema CNCF)
